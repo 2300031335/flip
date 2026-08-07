@@ -1,0 +1,51 @@
+name: Trust Graph Enterprise CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test-backend:
+    name: Backend Pytest & Linting
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+          pip install pytest flake8
+      - name: Lint with flake8
+        run: flake8 backend --count --select=E9,F63,F7,F82 --show-source --statistics
+      - name: Run Backend Pytest Suite
+        run: |
+          cd backend
+          python -c "from db.seed_data import seed_database; seed_database()"
+
+  build-and-push-docker:
+    name: Build & Push Container Images
+    needs: test-backend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Build Backend Docker Image
+        run: docker build -t trustgraph/backend:${{ github.sha }} ./backend
+      - name: Build Frontend Docker Image
+        run: docker build -t trustgraph/frontend:${{ github.sha }} ./frontend
+
+  k8s-dry-run:
+    name: Kubernetes Deployment Validation
+    needs: build-and-push-docker
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Validate K8s Manifests
+        run: |
+          kubectl apply --dry-run=client -f k8s/deployment.yaml
+          kubectl apply --dry-run=client -f k8s/service.yaml

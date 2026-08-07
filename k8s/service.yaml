@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: trust-graph-backend-service
+spec:
+  type: ClusterIP
+  selector:
+    app: trust-graph-backend
+  ports:
+    - protocol: TCP
+      port: 8000
+      targetPort: 8000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: trust-graph-frontend-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: trust-graph-frontend
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 3000

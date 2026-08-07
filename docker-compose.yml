@@ -1,0 +1,77 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: trust_graph_backend
+    ports:
+      - "8000:8000"
+    environment:
+      - SECRET_KEY=super-secret-trust-graph-jwt-key-2026
+      - DATABASE_TYPE=mysql
+      - MYSQL_HOST=mysql
+      - MYSQL_PORT=3306
+      - MYSQL_USER=trustgraph
+      - MYSQL_PASSWORD=trustgraphpass
+      - MYSQL_DB=trustgraphdb
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - redis
+      - mysql
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: trust_graph_frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+  redis:
+    image: redis:7-alpine
+    container_name: trust_graph_redis
+    ports:
+      - "6379:6379"
+
+  mysql:
+    image: mysql:8.0
+    container_name: trust_graph_mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: trustgraphdb
+      MYSQL_USER: trustgraph
+      MYSQL_PASSWORD: trustgraphpass
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: trust_graph_postgres
+    environment:
+      POSTGRES_USER: trustgraph
+      POSTGRES_PASSWORD: trustgraphpass
+      POSTGRES_DB: trustgraphdb
+    ports:
+      - "5432:5432"
+
+  neo4j:
+    image: neo4j:5-community
+    container_name: trust_graph_neo4j
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    environment:
+      NEO4J_AUTH: neo4j/trustgraphpass
+
+volumes:
+  mysql_data:

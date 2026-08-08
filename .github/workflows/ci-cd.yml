@@ -2,9 +2,12 @@ name: Trust Graph Enterprise CI/CD Pipeline
 
 on:
   push:
-    branches: [main, develop]
+    branches:
+      - main
+      - develop
   pull_request:
-    branches: [main]
+    branches:
+      - main
 
 jobs:
   test-backend:
@@ -15,7 +18,7 @@ jobs:
       mysql:
         image: mysql:8.0
         env:
-          MYSQL_ROOT_PASSWORD: root
+          MYSQL_ROOT_PASSWORD: Rushi.2003
           MYSQL_DATABASE: trust_graph
         ports:
           - 3306:3306
@@ -27,10 +30,10 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Python 3.10
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: "3.10"
 
@@ -45,7 +48,11 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y mysql-client
 
-          until mysqladmin ping -h 127.0.0.1 -uroot -proot --silent
+          until mysqladmin ping \
+            -h127.0.0.1 \
+            -uroot \
+            -pRushi.2003 \
+            --silent
           do
             echo "Waiting for MySQL..."
             sleep 5
@@ -56,11 +63,25 @@ jobs:
           flake8 backend --count --select=E9,F63,F7,F82 --show-source --statistics
 
       - name: Seed Database
+        env:
+          DATABASE_TYPE: mysql
+          MYSQL_HOST: 127.0.0.1
+          MYSQL_PORT: 3306
+          MYSQL_USER: root
+          MYSQL_PASSWORD: Rushi.2003
+          MYSQL_DB: trust_graph
         run: |
           cd backend
           python -c "from db.seed_data import seed_database; seed_database()"
 
       - name: Run Backend Pytest Suite
+        env:
+          DATABASE_TYPE: mysql
+          MYSQL_HOST: 127.0.0.1
+          MYSQL_PORT: 3306
+          MYSQL_USER: root
+          MYSQL_PASSWORD: Rushi.2003
+          MYSQL_DB: trust_graph
         run: |
           cd backend
           pytest -v
@@ -71,7 +92,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
       - name: Build Backend Docker Image
         run: |
@@ -87,12 +109,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
       - name: Install kubectl
-        uses: azure/setup-kubectl@v3
-        with:
-          version: latest
+        uses: azure/setup-kubectl@v4
 
       - name: Validate Kubernetes Manifests
         run: |
